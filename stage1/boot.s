@@ -73,6 +73,7 @@ mov [ReservedFS], eax
 mov al, [RsvdSecCnt]
 mov [DAPAddr], al
 ;load the FAT to memory
+mov ax, [DAPBufOff]
 mov dl, [DriveNum]
 mov si, DAP
 mov ah, 0x42
@@ -80,24 +81,16 @@ int 0x13
 jc error
 
 ;load start of root directory to memory
-;compute address
 mov eax, [RootClus32]
-sub eax, 2
-add eax, [ReservedFS]
-mov [DAPAddr], eax
-
 mov word [DAPBufOff], KERNEL_LOCATION
-mov al, [ClusSize]
-mov [DAPSecs], al
-mov dl, [DriveNum]
-mov si, DAP
-mov ah, 0x42
-int 0x13
-jc error
-mov eax, [KERNEL_LOCATION]
-mov si, KERNEL_LOCATION
+call readClus
+;search for and load the file
+mov di, KERNEL_LOCATION
 call findName
 call loadFile
+mov si, KERNEL_LOCATION
+call print
+
 
 jmp $
 
@@ -108,26 +101,6 @@ mov al, ','
 int 0x10
 popa
 ret
-
-prInt:
-	pusha
-	xor cx, cx
-	mov esi, 10
-.loop:
-	xor edx, edx
-	div esi
-	push edx
-	inc cx
-	cmp eax, 0
-	jne .loop
-.print:
-	pop eax
-	or al, 0x30
-	mov ah, 0x0e
-	int 0x10
-	loop .print
-	popa
-	ret
 
 hexTable: db "0123456789abcdef"
 prHex:
@@ -191,38 +164,79 @@ jmp $
 errorMessage: db "there was an error", 0
 
 ;inputs
-; si = start of dir
-;outputs = dir with target name
+; di = start of dir
+;outputs 
+; di = dir with target name
 name: db "TESTFILE    "
 findName:
-mov di, name
+mov si, name
 .searchingLoop:
-push si
 push di
+push si
 mov cx, 12
 repe cmpsb
-pop di
 pop si
+pop di
 je .found
-add si, 0x20
+add di, 0x20
 jmp .searchingLoop
 .found:
 ret
 
 ;inputs:
-; si = start of file
+; di = start of file
 ; DAPBuf = where to load file
-; ebx = FAT location in memory
+; bx = FAT location in memory
 ;outputs
 loadFile:
+mov si, di
 call print
+mov si, bx
 ;move si to the high half of the file cluster
-add si, 20
-mov eax, [si]
+add di, 20
+mov ax, [di]
+
 shl eax, 16
 ;and the low
-add si, 6
-mov ax, [si]
+add di, 6
+mov ax, [di]
+
+mov bx, 4
+mov si, FAT_LOCATION
+
+.readingLoop:
+call readClus
+mul bx
+add si, ax
+mov eax, [si]
+cmp eax, 0xfffffff7
+jl .readingLoop
+ret
+
+;inputs:
+; eax = cluster to read(will not work if we go to a sector above 0xffffffff)
+; DAPBuf = where to put cluster 
+;outputs:
+; [DAPBuf] = cluster
+readClus:
+pusha
+;convert to sector
+sub eax, 2
+xor ebx, ebx
+mov bl, [ClusSize]
+mul ebx
+add eax, [ReservedFS]
+;load DAP
+mov [DAPAddr], eax
+mov al, [ClusSize]
+mov [DAPSecs], al
+;do the read
+mov dl, [DriveNum]
+mov si, DAP
+mov ah, 0x42
+int 0x13
+jc error
+popa
 ret
 
 DriveNum: db 0
