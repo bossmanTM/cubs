@@ -42,6 +42,9 @@ VolLab32 equ 0x7c47
 FilSysType32 equ 0x7c52
 
 selectedFatSector equ 0
+
+FAT_LOCATION equ 0x500
+KERNEL_LOCATION equ 0x7e00
  
 boot:
 [org 0x7c5a]
@@ -58,41 +61,43 @@ mov si, FilSysType32
 mov cx, 8
 call printL
 
-;testing
-;mov ah, 0x42
-;mov dl, 0x80
-;mov si , DAPI13
-;int 0x13
-;jc error
-;mov si, 0x7e00
-;call print
 xor ebx, ebx
 mov eax, [FATSz32]
 mov bl, [NumFats]
 mul ebx
-push eax
-
-;load start of root directory to memory
-mov eax, [RootClus32]
-sub eax, 2
-mov bl, [ClusSize]
-mul ebx
 mov bx, [RsvdSecCnt]
 add eax, ebx
-pop ebx
-add eax, ebx
-mov [DAPAddr], eax
-mov ah, 0x42
-mov dl, [DriveNum]
-mov si, DAP
-int 0x13
-jc error
-mov si, 0x7e00
-call print
-;find FAT
+mov [ReservedFS], eax
 
 ;load FAT to memory
+mov al, [RsvdSecCnt]
+mov [DAPAddr], al
+;load the FAT to memory
+mov dl, [DriveNum]
+mov si, DAP
+mov ah, 0x42
+int 0x13
+jc error
 
+;load start of root directory to memory
+;compute address
+mov eax, [RootClus32]
+sub eax, 2
+add eax, [ReservedFS]
+mov [DAPAddr], eax
+
+mov word [DAPBufOff], KERNEL_LOCATION
+mov al, [ClusSize]
+mov [DAPSecs], al
+mov dl, [DriveNum]
+mov si, DAP
+mov ah, 0x42
+int 0x13
+jc error
+mov eax, [KERNEL_LOCATION]
+mov si, KERNEL_LOCATION
+call findName
+call loadFile
 
 jmp $
 
@@ -151,7 +156,7 @@ prHex:
 ;outputs:
 ; si: end of string
 print:
-push ax
+pusha
 mov ah, 0x0e
 .loop:
 lodsb
@@ -160,7 +165,7 @@ je .end
 int 0x10
 jmp .loop
 .end:
-pop ax
+popa
 ret
 
 ;inputs:
@@ -185,16 +190,51 @@ call print
 jmp $
 errorMessage: db "there was an error", 0
 
-DriveNum: db 0
+;inputs
+; si = start of dir
+;outputs = dir with target name
+name: db "TESTFILE    "
+findName:
+mov di, name
+.searchingLoop:
+push si
+push di
+mov cx, 12
+repe cmpsb
+pop di
+pop si
+je .found
+add si, 0x20
+jmp .searchingLoop
+.found:
+ret
 
+;inputs:
+; si = start of file
+; DAPBuf = where to load file
+; ebx = FAT location in memory
+;outputs
+loadFile:
+call print
+;move si to the high half of the file cluster
+add si, 20
+mov eax, [si]
+shl eax, 16
+;and the low
+add si, 6
+mov ax, [si]
+ret
+
+DriveNum: db 0
+ReservedFS: dd 0
 ;might throw this to a random piece of memory in the future tbh
 DAP:
 DAPSize: db 0x10
 DAPUnused: db 0 ;WHY ARE THERE ALWAYS UNUSED BYTES
 DAPSecs: dw 1 ;sometimes cant be over 127
 DAPBuf:  ; where to place it 
-DAPBufOff: dw 0x7e00
+DAPBufOff: dw FAT_LOCATION
 DAPBufSeg: dw 0x0000
-DAPAddr: dq 0x00000000
+DAPAddr: dq 0x00000020
 times 510-90-($-$$) db 0
 dw 0xaa55
