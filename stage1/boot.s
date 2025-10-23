@@ -82,18 +82,8 @@ jc error
 ;load start of root directory to memory
 ;compute address
 mov eax, [RootClus32]
-sub eax, 2
-add eax, [ReservedFS]
-mov [DAPAddr], eax
-
-mov word [DAPBufOff], KERNEL_LOCATION
-mov al, [ClusSize]
-mov [DAPSecs], al
-mov dl, [DriveNum]
-mov si, DAP
-mov ah, 0x42
-int 0x13
-jc error
+call readClus
+;search for and load the file
 mov eax, [KERNEL_LOCATION]
 mov si, KERNEL_LOCATION
 call findName
@@ -192,7 +182,8 @@ errorMessage: db "there was an error", 0
 
 ;inputs
 ; si = start of dir
-;outputs = dir with target name
+;outputs 
+;si = dir with target name
 name: db "TESTFILE    "
 findName:
 mov di, name
@@ -218,11 +209,36 @@ loadFile:
 call print
 ;move si to the high half of the file cluster
 add si, 20
-mov eax, [si]
+mov ax, [si]
 shl eax, 16
 ;and the low
 add si, 6
 mov ax, [si]
+
+ret
+
+;inputs:
+; ax = cluster to read(will not work if we go to a sector above 0xffffffff)
+; DAPBuf = where to put cluster 
+;outputs:
+; [DAPBuf] = cluster
+readClus:
+;convert to sector
+sub eax, 2
+xor ebx, ebx
+mov bl, [ClusSize]
+mul ebx
+add eax, [ReservedFS]
+;load DAP
+mov [DAPAddr], eax
+mov al, [ClusSize]
+mov [DAPSecs], al
+;do the read
+mov dl, [DriveNum]
+mov si, DAP
+mov ah, 0x42
+int 0x13
+jc error
 ret
 
 DriveNum: db 0
