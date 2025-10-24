@@ -3,7 +3,7 @@ AS = nasm
 LD = i686-elf-ld
 
 OBJ = boot.o
-ASM = boot.s
+ASM = boot.asm
 
 run: boot
 	qemu-system-x86_64 boot.bin
