@@ -43,8 +43,8 @@ FilSysType32 equ 0x7c52
 
 selectedFatSector equ 0
 
-FAT_LOCATION equ 0x500
-KERNEL_LOCATION equ 0x7e00
+FAT_LOCATION equ 0x800
+KERNEL_LOCATION equ 0x1000
  
 boot:
 [org 0x7c5a]
@@ -88,11 +88,8 @@ call readClus
 mov di, KERNEL_LOCATION
 call findName
 call loadFile
-mov si, KERNEL_LOCATION
-call print
 
-
-jmp $
+jmp KERNEL_LOCATION
 
 debp:
 pusha
@@ -167,9 +164,14 @@ errorMessage: db "there was an error", 0
 ; di = start of dir
 ;outputs 
 ; di = dir with target name
-name: db "TESTFILE    "
+searchingMessage: db 0xa, 0xd, "searching for ", 0
+foundMessage: db 0xa, 0xd, "found "
+name: db "BOOT    BIN ", 0
 findName:
+mov si, searchingMessage
+call print
 mov si, name
+call print
 .searchingLoop:
 push di
 push si
@@ -181,6 +183,8 @@ je .found
 add di, 0x20
 jmp .searchingLoop
 .found:
+mov si, foundMessage
+call print
 ret
 
 ;inputs:
@@ -189,8 +193,6 @@ ret
 ; bx = FAT location in memory
 ;outputs
 loadFile:
-mov si, di
-call print
 mov si, bx
 ;move si to the high half of the file cluster
 add di, 20
