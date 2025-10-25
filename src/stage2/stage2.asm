@@ -1,4 +1,4 @@
-[org 0x1000]
+[org 0x7e00]
 mov si, victoryText
 call print
 jmp $
