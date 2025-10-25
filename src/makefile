@@ -1,5 +1,8 @@
 .PHONY: stage1 stage2
 
+ASFLAGS := -i $(dir $(abspath lib))../lib
+export ASFLAGS
+
 run: loader
 	qemu-system-x86_64 -drive format=raw,file=loader.img
 
