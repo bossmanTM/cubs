@@ -1,4 +1,5 @@
-[org 0x7e00]
+%include "defs.asm"
+[org STAGE2_LOCATION]
 mov si, victoryText
 call print
 jmp $

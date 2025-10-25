@@ -43,9 +43,8 @@ FilSysType32 equ 0x7c52
 
 selectedFatSector equ 0
 
-FAT_LOCATION equ 0x800
-STAGE2_LOCATION equ 0x7e00
 %define BOOTSEC
+%include "defs.asm"
  
 boot:
 [org 0x7c5a]

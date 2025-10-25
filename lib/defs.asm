@@ -1,0 +1,8 @@
+%ifndef DEFS_ASM
+%define DEFS_ASM
+
+KERNEL_LOCATION equ 0x1000
+FAT_LOCATION equ 0x500
+STAGE2_LOCATION equ 0x7e00
+
+%endif
