@@ -11,13 +11,13 @@ loader: stage1 loader.img stage2
 	python3 loader.py
 
 stage2: loader.img
-	$(MAKE) -C $@ boot
+	$(MAKE) -C $@ all
 	$(eval TMP := $(shell mktemp -d))
 	sudo mount loader.img $(TMP)
-	sudo cp stage2/boot.bin $(TMP)/BOOT.BIN
+	sudo cp -u stage2/boot.bin $(TMP)/BOOT.BIN
 	sync
 	sudo umount $(TMP)
 	rm -rf $(TMP)
 
 stage1:
-	$(MAKE) -C $@ boot
+	$(MAKE) -C $@ all

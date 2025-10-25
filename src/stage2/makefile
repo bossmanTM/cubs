@@ -2,5 +2,7 @@ AS = nasm
 
 ASM = stage2.asm
 
-boot: $(ASM)
-	$(AS) -f bin $^ -o $@.bin
+all: boot.bin
+
+boot.bin: $(ASM)
+	$(AS) -f bin $^ -o $@

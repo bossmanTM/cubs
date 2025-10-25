@@ -5,8 +5,10 @@ LD = i686-elf-ld
 OBJ = boot.o
 ASM = boot.asm
 
+all: boot.bin
+
 run: boot
 	qemu-system-x86_64 boot.bin
 
-boot: $(ASM)
-	$(AS) -f bin $^ -o $@.bin
+boot.bin: $(ASM)
+	$(AS) -f bin $^ -o $@
