@@ -44,7 +44,7 @@ FilSysType32 equ 0x7c52
 selectedFatSector equ 0
 
 FAT_LOCATION equ 0x800
-STAGE2_LOCATION equ 0x1000
+STAGE2_LOCATION equ 0x7e00
 %define BOOTSEC
  
 boot:
