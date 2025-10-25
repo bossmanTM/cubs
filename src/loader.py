@@ -1,4 +1,4 @@
-with open("loader.bin", 'r+b') as bootFile:
+with open("loader.img", 'r+b') as bootFile:
     boot = bytearray(bootFile.read())
     bootFile.seek(0x5a)
     with open("stage1/boot.bin", 'rb') as loader:
