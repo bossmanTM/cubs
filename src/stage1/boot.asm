@@ -44,7 +44,7 @@ FilSysType32 equ 0x7c52
 selectedFatSector equ 0
 
 FAT_LOCATION equ 0x800
-KERNEL_LOCATION equ 0x1000
+STAGE2_LOCATION equ 0x1000
  
 boot:
 [org 0x7c5a]
@@ -82,14 +82,14 @@ jc error
 
 ;load start of root directory to memory
 mov eax, [RootClus32]
-mov word [DAPBufOff], KERNEL_LOCATION
+mov word [DAPBufOff], STAGE2_LOCATION
 call readClus
 ;search for and load the file
-mov di, KERNEL_LOCATION
+mov di, STAGE2_LOCATION
 call findName
 call loadFile
 
-jmp KERNEL_LOCATION
+jmp STAGE2_LOCATION
 
 debp:
 pusha
