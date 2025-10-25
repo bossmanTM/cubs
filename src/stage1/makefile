@@ -9,4 +9,4 @@ run: boot
 	qemu-system-x86_64 boot.bin
 
 boot: $(ASM)
-	$(AS) -f bin $^ -o $@.bin
+	$(AS) $(ASFLAGS) -f bin $^ -o $@.bin

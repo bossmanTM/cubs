@@ -45,6 +45,7 @@ selectedFatSector equ 0
 
 FAT_LOCATION equ 0x800
 STAGE2_LOCATION equ 0x1000
+%define BOOTSEC
  
 boot:
 [org 0x7c5a]
@@ -69,7 +70,7 @@ mov bx, [RsvdSecCnt]
 add eax, ebx
 mov [ReservedFS], eax
 
-;load FAT to memory
+;load FAT location to DAP
 mov al, [RsvdSecCnt]
 mov [DAPAddr], al
 ;load the FAT to memory
@@ -91,67 +92,7 @@ call loadFile
 
 jmp STAGE2_LOCATION
 
-debp:
-pusha
-mov ah, 0x0e
-mov al, ','
-int 0x10
-popa
-ret
-
-hexTable: db "0123456789abcdef"
-prHex:
-	pusha
-	xor cx, cx	
-	mov esi, 0x10
-.loop:
-	xor edx, edx
-	div esi
-	push edx
-	inc cx
-	cmp eax, 0
-	jne .loop
-	mov ah, 0x0e
-.print:
-	pop ebx
-	add ebx, hexTable
-	mov al, [ebx]
-	int 0x10
-	loop .print
-	popa
-	ret
-
-;inputs:
-; si: pointer to the string
-;outputs:
-; si: end of string
-print:
-pusha
-mov ah, 0x0e
-.loop:
-lodsb
-cmp al, 0
-je .end
-int 0x10
-jmp .loop
-.end:
-popa
-ret
-
-;inputs:
-; si: pointer to the string
-; cx: length of string
-;outputs:
-;
-printL:
-pusha
-mov ah, 0x0e
-.loop:
-lodsb
-int 0x10
-loop .loop
-popa
-ret
+%include "IO.asm"
 
 error:
 call prHex
@@ -168,51 +109,50 @@ searchingMessage: db 0xa, 0xd, "searching for ", 0
 foundMessage: db 0xa, 0xd, "found "
 name: db "BOOT    BIN ", 0
 findName:
-mov si, searchingMessage
-call print
-mov si, name
-call print
+	mov si, searchingMessage
+	call print
+	mov si, name
+	call print
 .searchingLoop:
-push di
-push si
-mov cx, 12
-repe cmpsb
-pop si
-pop di
-je .found
-add di, 0x20
-jmp .searchingLoop
+	push di
+	push si
+	mov cx, 12
+	repe cmpsb
+	pop si
+	pop di
+	je .found
+	add di, 0x20
+	jmp .searchingLoop
 .found:
-mov si, foundMessage
-call print
-ret
+	mov si, foundMessage
+	call print
+	ret
 
+;loadFile
+;loads a file given the location
 ;inputs:
 ; di = start of file
 ; DAPBuf = where to load file
 ; bx = FAT location in memory
 ;outputs
 loadFile:
-mov si, bx
-;move si to the high half of the file cluster
-add di, 20
-mov ax, [di]
-
-shl eax, 16
-;and the low
-add di, 6
-mov ax, [di]
-
-mov bx, 4
-mov si, FAT_LOCATION
-
+	mov si, bx
+	;move si to the high half of the file cluster
+	add di, 20
+	mov ax, [di]
+	shl eax, 16
+	;and the low
+	add di, 6
+	mov ax, [di]
+	mov bx, 4
+	mov si, FAT_LOCATION
 .readingLoop:
-call readClus
-mul bx
-add si, ax
-mov eax, [si]
-cmp eax, 0xfffffff7
-jl .readingLoop
+	call readClus
+	mul bx
+	add si, ax
+	mov eax, [si]
+	cmp eax, 0xfffffff7
+	jl .readingLoop
 ret
 
 ;inputs:
