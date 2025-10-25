@@ -70,7 +70,7 @@ mov bx, [RsvdSecCnt]
 add eax, ebx
 mov [ReservedFS], eax
 
-;load FAT to memory
+;load FAT location to DAP
 mov al, [RsvdSecCnt]
 mov [DAPAddr], al
 ;load the FAT to memory
